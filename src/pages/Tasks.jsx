@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 import ErrorMessage from "../components/ErrorMessage";
 import { getTasks, createTask, updateTask, deleteTask } from "../api";
@@ -19,17 +20,32 @@ function Tasks() {
   const [editTitle, setEditTitle] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const navigate = useNavigate();
+
+  // Central place to handle "session expired / not logged in"
+  const handleAuthError = (err) => {
+    if (err.status === 401) {
+      navigate("/login");
+      return true;
+    }
+    return false;
+  };
+
   const fetchTasks = () => {
     setLoading(true);
     setError(null);
     getTasks()
       .then(setTasks)
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        if (handleAuthError(err)) return;
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreate = async (e) => {
@@ -52,6 +68,7 @@ function Tasks() {
     } catch (err) {
       // Roll back the optimistic task on failure
       setTasks((prev) => prev.filter((t) => t._id !== tempId));
+      if (handleAuthError(err)) return;
       setCreateError(err.message);
     } finally {
       setCreating(false);
@@ -64,6 +81,7 @@ function Tasks() {
       const updated = await updateTask(task._id, { completed: !task.completed });
       setTasks((prev) => prev.map((t) => (t._id === task._id ? updated : t)));
     } catch (err) {
+      if (handleAuthError(err)) return;
       setRowError(err.message);
     }
   };
@@ -89,6 +107,7 @@ function Tasks() {
       setEditingId(null);
       setEditTitle("");
     } catch (err) {
+      if (handleAuthError(err)) return;
       setRowError(err.message);
     } finally {
       setSavingEdit(false);
@@ -101,6 +120,7 @@ function Tasks() {
       await deleteTask(id);
       setTasks((prev) => prev.filter((t) => t._id !== id));
     } catch (err) {
+      if (handleAuthError(err)) return;
       setRowError(err.message);
     } finally {
       setConfirmDeleteId(null);
