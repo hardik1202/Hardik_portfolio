@@ -57,7 +57,7 @@ To containerize the full-stack Task Management application (React Frontend, Node
    - Excludes `node_modules`, `npm-debug.log`, `.env`, and `.git` from Docker build context to prevent build slowdowns and credential leakage.
 
 3. **`Frontend/Dockerfile`**:
-   - Multi-stage build concept using `node:18 AS build`.
+   - Multi-stage build concept using `node:20 AS build` (Node 20+ required for Vite 8's `styleText` dependency).
    - Copies package manifests, runs `npm install`, copies source, runs `npm run build`.
    - Exposes port `5173` and serves via `npm run preview -- --host 0.0.0.0`.
 
