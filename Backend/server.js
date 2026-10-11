@@ -8,6 +8,10 @@ const Task = require('./models/Task');
 const User = require('./models/User');
 const authMiddleware = require('./middleware/auth');
 const { validateTask } = require('./middleware/validate');
+const { cache, invalidateUserCache } = require('./cache');
+const cacheStats = require('./cacheStats');
+const taskEvents = require('./events');
+require('./listeners'); // Register all event listeners at startup
 
 const app = express();
 
@@ -21,8 +25,17 @@ if (missingEnv.length > 0) {
 app.use(cors());
 app.use(express.json());
 
+// Response-time tracking middleware
 app.use((req, res, next) => {
+  const start = process.hrtime();
   console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+
+  res.on('finish', () => {
+    const [seconds, nanoseconds] = process.hrtime(start);
+    const durationMs = (seconds * 1000 + nanoseconds / 1e6).toFixed(2);
+    console.log(`${req.method} ${req.url} completed in ${durationMs}ms [${res.statusCode}]`);
+  });
+
   next();
 });
 
@@ -101,8 +114,66 @@ app.get('/me', authMiddleware, async (req, res, next) => {
 // GET all tasks
 app.get('/tasks', authMiddleware, async (req, res, next) => {
   try {
-    const tasks = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const cacheKey = `tasks:${req.user.id}`;
+    const cachedTasks = cache.get(cacheKey);
+
+    if (cachedTasks !== undefined) {
+      cacheStats.incrementHit();
+      return res.status(200).json(cachedTasks);
+    }
+
+    cacheStats.incrementMiss();
+    const tasks = await Task.find({ user: req.user.id }).sort({ createdAt: -1 }).lean();
+    cache.set(cacheKey, tasks);
     res.status(200).json(tasks);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/debug/cache', authMiddleware, (req, res) => {
+  res.status(200).json({
+    ...cacheStats.getStats(),
+    keys: cache.keys(),
+    ttl: cache.options.stdTTL
+  });
+});
+
+app.delete('/debug/cache', authMiddleware, (req, res) => {
+  cache.flushAll();
+  cacheStats.resetStats();
+  res.status(200).json({ message: 'Cache cleared' });
+});
+
+// Benchmark endpoint: measures cached vs uncached response time for GET /tasks
+app.get('/debug/cache/benchmark', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // --- Uncached measurement ---
+    cache.del(`tasks:${userId}`);  // ensure cache miss
+    const uncachedStart = process.hrtime();
+    const tasksFromDb = await Task.find({ user: userId }).sort({ createdAt: -1 }).lean();
+    cache.set(`tasks:${userId}`, tasksFromDb);
+    const [uSec, uNano] = process.hrtime(uncachedStart);
+    const uncachedMs = (uSec * 1000 + uNano / 1e6).toFixed(2);
+
+    // --- Cached measurement ---
+    const cachedStart = process.hrtime();
+    const tasksFromCache = cache.get(`tasks:${userId}`);
+    const [cSec, cNano] = process.hrtime(cachedStart);
+    const cachedMs = (cSec * 1000 + cNano / 1e6).toFixed(2);
+
+    const speedup = uncachedMs > 0 ? (parseFloat(uncachedMs) / parseFloat(cachedMs)).toFixed(1) : 'N/A';
+
+    res.status(200).json({
+      uncachedResponseTimeMs: parseFloat(uncachedMs),
+      cachedResponseTimeMs: parseFloat(cachedMs),
+      speedupFactor: `${speedup}x faster`,
+      taskCount: tasksFromDb.length,
+      ttlSeconds: cache.options.stdTTL,
+      note: 'Uncached = fresh MongoDB query; Cached = node-cache in-memory lookup'
+    });
   } catch (err) {
     next(err);
   }
@@ -111,10 +182,20 @@ app.get('/tasks', authMiddleware, async (req, res, next) => {
 // GET single task by ID
 app.get('/tasks/:id', authMiddleware, async (req, res, next) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    const cacheKey = `task:${req.user.id}:${req.params.id}`;
+    const cachedTask = cache.get(cacheKey);
+
+    if (cachedTask !== undefined) {
+      cacheStats.incrementHit();
+      return res.status(200).json(cachedTask);
+    }
+
+    cacheStats.incrementMiss();
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id }).lean();
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+    cache.set(cacheKey, task);
     res.status(200).json(task);
   } catch (err) {
     if (err.name === 'CastError') {
@@ -131,7 +212,14 @@ app.post('/tasks', authMiddleware, validateTask, async (req, res, next) => {
       ...req.body,
       user: req.user.id
     });
+    invalidateUserCache(req.user.id);
+
+    // Practical 10: Log API response timestamp, send response, THEN emit event
+    console.log(`\n⚡ [API] POST /tasks — Response sent at ${new Date().toISOString()}`);
     res.status(201).json(newTask);
+
+    // Emit event AFTER response — handled asynchronously by listener
+    taskEvents.emit('task-created', newTask);
   } catch (err) {
     next(err);
   }
@@ -148,6 +236,7 @@ app.put('/tasks/:id', authMiddleware, validateTask, async (req, res, next) => {
     if (!updatedTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
+    invalidateUserCache(req.user.id);
     res.status(200).json(updatedTask);
   } catch (err) {
     if (err.name === 'CastError') {
@@ -164,7 +253,14 @@ app.delete('/tasks/:id', authMiddleware, async (req, res, next) => {
     if (!deletedTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
+    invalidateUserCache(req.user.id);
+
+    // Practical 10: Log API response timestamp, send response, THEN emit event
+    console.log(`\n⚡ [API] DELETE /tasks/:id — Response sent at ${new Date().toISOString()}`);
     res.status(200).json({ message: 'Task deleted' });
+
+    // Emit event AFTER response — handled asynchronously by listener
+    taskEvents.emit('task-deleted', deletedTask);
   } catch (err) {
     if (err.name === 'CastError') {
       return res.status(400).json({ error: 'Invalid task ID format' });
