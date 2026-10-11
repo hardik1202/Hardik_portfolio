@@ -1,13 +1,66 @@
-# Task Manager API — Practical 9: In-Memory Caching and Query Optimization
+# Full-Stack Task Manager Application
 
-## CO/PO: CO2, CO4 / PO3, PO5
-
-## Objective
-Implement server-side in-memory caching using `node-cache` and measure its impact on API response time for the Task Management backend.
+## Practical 11: Containerization with Docker and Docker Compose
+**CO/PO:** CO5 / PO3, PO5  
+**Objective:** Containerize the full-stack Task Management application using Docker and orchestrate services (Frontend, Backend, and MongoDB) using Docker Compose.
 
 ---
 
-## Table of Contents
+### Quick Start: Run Everything with Docker Compose
+
+Ensure Docker Desktop is running on your machine, then run:
+
+```bash
+docker compose up --build
+```
+
+- **Frontend App:** [http://localhost:5173](http://localhost:5173)
+- **Backend API:** [http://localhost:5000](http://localhost:5000)
+- **Backend Health Check:** [http://localhost:5000/health](http://localhost:5000/health)
+- **MongoDB:** `localhost:27017` (with persistent named volume `mongo-data`)
+
+To stop all services:
+```bash
+docker compose down
+```
+
+---
+
+### Practical 11 Architecture & Multi-Container Topology
+
+```
+                  docker-compose.yml
+ ┌────────────────────────────────────────────────────────┐
+ │                      app-network                       │
+ │                    (bridge driver)                     │
+ │                                                        │
+ │   ┌──────────────┐     ┌──────────────┐     ┌────────┐ │
+ │   │   frontend   │────►│   backend    │────►│mongodb │ │
+ │   │ (React Vite) │     │(Node/Express)│     │(mongo) │ │
+ │   └──────┬───────┘     └──────┬───────┘     └───┬────┘ │
+ └──────────┼────────────────────┼─────────────────┼──────┘
+            │                    │                 │
+      Port 5173:5173       Port 5000:5000    Port 27017:27017
+            │                    │                 │
+      [Host Browser]       [Host / Postman]   [Host / Compass]
+                                                   │
+                                            [Named Volume]
+                                            mongo-data:/data/db
+```
+
+#### Services Summary:
+| Service | Build Context / Image | Host Port : Container Port | Depends On | Purpose |
+|---|---|---|---|---|
+| `frontend` | `./Frontend` (`Dockerfile`) | `5173:5173` | `backend` | React client built & served via Vite preview |
+| `backend` | `./Backend` (`Dockerfile`) | `5000:5000` | `mongodb` | Node/Express API connected via internal Docker DNS |
+| `mongodb` | `mongo:latest` | `27017:27017` | - | MongoDB database with persistent volume `mongo-data` |
+
+---
+
+# Previous Practical References
+
+## Practical 9: In-Memory Caching and Query Optimization
+## CO/PO: CO2, CO4 / PO3, PO5
 1. [Architecture Diagram](#architecture-diagram)
 2. [Technologies Used](#technologies-used)
 3. [Files Changed / Added](#files-changed--added)

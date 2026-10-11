@@ -15,12 +15,13 @@ require('./listeners'); // Register all event listeners at startup
 
 const app = express();
 
-const requiredEnv = ['MONGO_URI', 'JWT_SECRET'];
-const missingEnv = requiredEnv.filter((key) => !process.env[key]);
-
-if (missingEnv.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnv.join(', ')}`);
+if (!process.env.MONGO_URI) {
+  process.env.MONGO_URI = 'mongodb://mongodb:27017/taskmanager';
 }
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = '3e9c5846b6838b51fb09da6b75bfb03d034112d5ddbf9923c5589b7655647b48';
+}
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -286,4 +287,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong' });
 });
 
-app.listen(5000, () => console.log('Server running on port 5000'));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
