@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register, login } from "../api";
-import { setToken } from "../auth";
+import { setToken, isLoggedIn } from "../auth";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -9,6 +9,12 @@ function Register() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoggedIn()) {
+      navigate("/tasks");
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +35,7 @@ function Register() {
 
   return (
     <section className="section-card">
+      <p className="eyebrow">Task Management System</p>
       <h2>Register</h2>
       <form onSubmit={handleSubmit}>
         <input

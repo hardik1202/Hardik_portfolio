@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import NavBar from "./components/NavBar";
 import Spinner from "./components/Spinner";
 import Home from "./pages/Home";
@@ -39,12 +39,13 @@ function App() {
       <main className="page-content">
         <Suspense fallback={<Spinner />}>
           <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route path="/" element={<Navigate to="/tasks" replace />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/portfolio" element={<Home />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>

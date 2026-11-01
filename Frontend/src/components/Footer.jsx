@@ -1,7 +1,7 @@
 function Footer() {
   return (
     <footer className="footer">
-      <p>© 2026 Student Portfolio</p>
+      <p>© 2026 Task Management Application</p>
     </footer>
   );
 }

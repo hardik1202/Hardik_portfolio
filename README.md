@@ -1,5 +1,56 @@
 # Full-Stack Task Manager Application
 
+![CI Pipeline](https://github.com/hardik1202/Hardik_portfolio/actions/workflows/ci.yml/badge.svg)
+
+## Practical 12: CI/CD Pipeline with GitHub Actions
+**CO/PO:** CO5 / PO3, PO5  
+**Objective:** Automate testing and deployment of the application using a CI/CD pipeline with GitHub Actions that runs linting and tests on every push.
+
+### CI Pipeline Status Badge
+The badge above shows the current status of the CI pipeline. Green ✅ means all tests pass; Red ❌ means something is broken.
+
+### CI/CD Pipeline Architecture
+```
+git push origin main
+        |
+        v
+  GitHub Actions Trigger (on: push / pull_request)
+        |
+        v
+  Job 1: lint ──→ Job 2: build-and-test
+   ├── Checkout         ├── Checkout
+   ├── Setup Node 18    ├── Setup Node 18
+   ├── npm install      ├── npm install
+   └── ESLint           └── npm test (Jest)
+        |
+        v
+  Green ✅ (pass) or Red ❌ (fail) on GitHub
+```
+
+### Files Added for Practical 12
+| File | Purpose |
+|---|---|
+| `.github/workflows/ci.yml` | GitHub Actions workflow — triggers lint + test on push/PR to `main` |
+| `Backend/app.js` | Express app module (extracted from `server.js` for testability) |
+| `Backend/tests/app.test.js` | 5 automated tests: health check, auth validation, input validation, 404 handler |
+| `PRACTICAL_12.md` | Full practical documentation with viva Q&A |
+
+### Files Modified for Practical 12
+| File | Change |
+|---|---|
+| `Backend/server.js` | Now imports `app` from `app.js`; only handles DB connection + server startup |
+| `Backend/package.json` | Test script changed to `jest`; added `jest` + `supertest` as devDependencies |
+| `README.md` | Added this Practical 12 section + CI status badge |
+
+### Run Tests Locally
+```bash
+cd Backend
+npm install
+npm test
+```
+
+---
+
 ## Practical 11: Containerization with Docker and Docker Compose
 **CO/PO:** CO5 / PO3, PO5  
 **Objective:** Containerize the full-stack Task Management application using Docker and orchestrate services (Frontend, Backend, and MongoDB) using Docker Compose.
@@ -56,6 +107,7 @@ docker compose down
 | `mongodb` | `mongo:latest` | `27017:27017` | - | MongoDB database with persistent volume `mongo-data` |
 
 ---
+
 
 # Previous Practical References
 

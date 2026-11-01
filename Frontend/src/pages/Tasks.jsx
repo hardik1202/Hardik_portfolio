@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 import ErrorMessage from "../components/ErrorMessage";
 import { getTasks, createTask, updateTask, deleteTask } from "../api";
+import { isLoggedIn } from "../auth";
 
 function Tasks() {
   const [tasks, setTasks] = useState([]);
@@ -44,6 +45,10 @@ function Tasks() {
   };
 
   useEffect(() => {
+    if (!isLoggedIn()) {
+      navigate("/login");
+      return;
+    }
     fetchTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -132,6 +137,7 @@ function Tasks() {
 
   return (
     <section className="section-card">
+      <p className="eyebrow">Task Management System</p>
       <h2>My Tasks</h2>
 
       <form

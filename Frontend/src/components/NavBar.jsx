@@ -17,8 +17,8 @@ function NavBar() {
 
   return (
     <nav className="navbar">
-      <NavLink className="brand-mark" to="/" aria-label="Hardik home">
-        H<span>.</span>
+      <NavLink className="brand-mark" to="/tasks" aria-label="Task Management System">
+        T<span>M</span>
       </NavLink>
       <button
         className="nav-menu-btn"
@@ -31,10 +31,10 @@ function NavBar() {
         <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
       </button>
       <div className={`nav-links primary-links ${menuOpen ? "is-open" : ""}`} id="primary-navigation">
-        <NavLink className="nav-link" to="/" end onClick={closeMenu}>Home</NavLink>
+        <NavLink className="nav-link" to="/tasks" onClick={closeMenu}>Tasks</NavLink>
         <NavLink className="nav-link" to="/projects" onClick={closeMenu}>Projects</NavLink>
         <NavLink className="nav-link" to="/contact" onClick={closeMenu}>Contact</NavLink>
-        <NavLink className="nav-link" to="/tasks" onClick={closeMenu}>Tasks</NavLink>
+        <NavLink className="nav-link" to="/portfolio" onClick={closeMenu}>Portfolio</NavLink>
       </div>
       <div className="nav-links">
         {loggedIn ? (
