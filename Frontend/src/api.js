@@ -1,6 +1,6 @@
 import { getToken, clearToken } from "./auth";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function authHeaders() {
   const token = getToken();
@@ -69,4 +69,17 @@ export async function deleteTask(id) {
     headers: { ...authHeaders() },
   });
   return handleResponse(res, "Failed to delete task");
+}
+
+export async function generateAiDescription(title) {
+  const res = await fetch(`${BASE_URL}/api/ai/generate-description`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ title }),
+  });
+  if (res.status === 429) {
+    const data = await res.json();
+    throw new Error(data.error || "Rate limit reached. Please wait a few seconds.");
+  }
+  return handleResponse(res, "Failed to generate AI description");
 }

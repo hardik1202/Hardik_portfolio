@@ -12,6 +12,7 @@ const { cache, invalidateUserCache } = require('./cache');
 const cacheStats = require('./cacheStats');
 const taskEvents = require('./events');
 require('./listeners'); // Register all event listeners at startup
+const { generateTaskDescription, checkRateLimit } = require('./aiService');
 
 const app = express();
 
@@ -261,6 +262,37 @@ app.delete('/tasks/:id', authMiddleware, async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid task ID format' });
     }
     next(err);
+  }
+});
+
+// ===== PRACTICAL 13: AI DESCRIPTION & PRIORITY GENERATION =====
+app.post('/api/ai/generate-description', authMiddleware, async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Task title is required to generate description' });
+    }
+
+    // Supplementary: in-memory rate limiting (max 1 call per 15s per user)
+    const rateLimit = checkRateLimit(req.user.id);
+    if (!rateLimit.allowed) {
+      return res.status(429).json({
+        error: `Rate limit: Please wait ${rateLimit.retryAfter}s before requesting another AI description.`,
+        retryAfter: rateLimit.retryAfter
+      });
+    }
+
+    const result = await generateTaskDescription(title);
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('[AI Route Error]', err);
+    // Graceful degradation: return 200 with fallback to prevent client crash
+    return res.status(200).json({
+      description: `Plan and execute tasks for: ${req.body?.title || 'Task'}`,
+      priority: 'medium',
+      fallback: true,
+      message: 'AI service unavailable, fallback suggestion provided.'
+    });
   }
 });
 

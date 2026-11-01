@@ -2,6 +2,31 @@
 
 ![CI Pipeline](https://github.com/hardik1202/Hardik_portfolio/actions/workflows/ci.yml/badge.svg)
 
+## Practical 13: AI API Integration into a Web Application
+**CO/PO:** CO6 / PO3, PO5, PO12  
+**Objective:** Integrate an external AI service (OpenAI / Gemini) securely via the Express backend to auto-generate task descriptions and suggest priority levels with graceful degradation and rate-limiting.
+
+### Practical 13 Key Features
+- **✨ AI Auto-fill Button:** Generates contextual descriptions and priority levels from the task title.
+- **🛡️ Server-Side Key Secrecy:** API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`) reside only in `.env` and are never exposed in browser network requests.
+- **🔄 Graceful Degradation:** When the external AI API is unreachable or has an invalid key, smart rule-based fallback suggestions are returned without application downtime.
+- **⏱️ In-Memory Rate Limiting:** Enforces a 15-second cooldown per user on both client and server to prevent quota exhaustion.
+- **🤖 Responsible AI Disclaimer:** Clear UI banner emphasizing that suggestions are AI-generated and must be reviewed.
+
+### Files Added & Modified for Practical 13
+| File | Status | Description |
+|---|---|---|
+| `Backend/aiService.js` | **NEW** | AI service handling OpenAI/Gemini calls, rate limits, and fallback generator |
+| `PRACTICAL_13.md` | **NEW** | Complete practical documentation with architecture, viva Q&A, and verification |
+| `Backend/app.js` | **MODIFIED** | Added authenticated `POST /api/ai/generate-description` route |
+| `Backend/tests/app.test.js` | **MODIFIED** | Added automated test suite for AI endpoint validation & fallback |
+| `Frontend/src/api.js` | **MODIFIED** | Added `generateAiDescription(title)` API client method |
+| `Frontend/src/pages/Tasks.jsx` | **MODIFIED** | Added AI button, loading state, cooldown timer, editable textarea, and disclaimer |
+| `Backend/package.json` | **MODIFIED** | Added `"openai": "^4.86.1"` dependency |
+| `Backend/.env.example` | **MODIFIED** | Added AI API key documentation |
+
+---
+
 ## Practical 12: CI/CD Pipeline with GitHub Actions
 **CO/PO:** CO5 / PO3, PO5  
 **Objective:** Automate testing and deployment of the application using a CI/CD pipeline with GitHub Actions that runs linting and tests on every push.

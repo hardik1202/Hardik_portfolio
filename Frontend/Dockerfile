@@ -1,4 +1,4 @@
-FROM node:20 AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -6,10 +6,12 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies inside container
-RUN npm install
+RUN npm ci
 
 # Copy source code and build production assets
 COPY . .
+ARG VITE_API_URL=http://localhost:5000
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Expose Vite preview port
