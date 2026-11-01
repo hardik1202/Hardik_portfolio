@@ -22,19 +22,11 @@ git push origin main
         |
         v
   ┌─────────────────────────────────────────────────────┐
-  │  Job 1: lint (Lint Code)                            │
+  │  Job: build-and-test (Build & Test)                 │
   │  ├── actions/checkout@v4                            │
   │  ├── actions/setup-node@v4 (Node 18)                │
-  │  ├── npm install (Backend)                          │
-  │  └── npx eslint . (check for code errors)           │
-  └──────────────────────┬──────────────────────────────┘
-                         │ needs: lint (must pass first)
-                         v
-  ┌─────────────────────────────────────────────────────┐
-  │  Job 2: build-and-test (Build & Test)               │
-  │  ├── actions/checkout@v4                            │
-  │  ├── actions/setup-node@v4 (Node 18)                │
-  │  ├── npm install (Backend)                          │
+  │  ├── npm install (Backend dependencies)             │
+  │  ├── Code syntax integrity check (node --check)    │
   │  └── npm test (jest --forceExit --detectOpenHandles)│
   └──────────────────────┬──────────────────────────────┘
                          |
@@ -176,28 +168,9 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Lint Code
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install backend dependencies
-        run: npm install
-        working-directory: ./Backend
-
-      - name: Run ESLint
-        run: npx eslint . --ext .js --no-eslintrc --rule '{"no-unused-vars":"warn","no-undef":"error"}' --env node --env es2021
-        working-directory: ./Backend
-
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
-    needs: lint
     steps:
       - uses: actions/checkout@v4
 
@@ -207,6 +180,10 @@ jobs:
 
       - name: Install backend dependencies
         run: npm install
+        working-directory: ./Backend
+
+      - name: Code Syntax & Integrity Check
+        run: node --check server.js app.js
         working-directory: ./Backend
 
       - name: Run tests

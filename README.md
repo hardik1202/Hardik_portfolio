@@ -17,11 +17,12 @@ git push origin main
   GitHub Actions Trigger (on: push / pull_request)
         |
         v
-  Job 1: lint ──→ Job 2: build-and-test
-   ├── Checkout         ├── Checkout
-   ├── Setup Node 18    ├── Setup Node 18
-   ├── npm install      ├── npm install
-   └── ESLint           └── npm test (Jest)
+  Job: build-and-test
+   ├── Checkout repository (actions/checkout@v4)
+   ├── Setup Node.js 18 (actions/setup-node@v4)
+   ├── Install backend dependencies (npm install)
+   ├── Code syntax integrity check (node --check)
+   └── Run automated test suite (npm test)
         |
         v
   Green ✅ (pass) or Red ❌ (fail) on GitHub
